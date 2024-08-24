@@ -156,4 +156,13 @@ contract Crowdfund {
     ) external view returns (Campaign memory) {
         return campaigns[campaignId];
     }
+
+    /// @notice Gets the amount raised for a specific campaign.
+    /// @param campaignId The ID of the campaign.
+    /// @return The amount raised for the campaign.
+    function getCampaignAmountRaised(
+        uint campaignId
+    ) external view returns (uint) {
+        return campaigns[campaignId].amountRaised;
+    }
 }

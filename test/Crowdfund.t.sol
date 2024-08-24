@@ -9,7 +9,23 @@ contract CrowdfundTest is Test {
     address fakeUser = vm.addr(1);
 
     function setUp() public {
+        vm.deal(fakeUser, 1 ether);
         crowdfund = new Crowdfund();
+    }
+
+    function newCampaign() public returns (uint campaignId) {
+        string memory title = "Test Campaign";
+        string memory description = "This is a test campaign.";
+        uint goal = 1 ether;
+        uint deadline = 1 minutes;
+
+        vm.prank(fakeUser);
+        campaignId = crowdfund.createCampaign(
+            title,
+            description,
+            goal,
+            deadline
+        );
     }
 
     function test_IsInitializedCorrectly() public view {
@@ -19,26 +35,60 @@ contract CrowdfundTest is Test {
     }
 
     function test_CanCreateCampaign() public {
-        vm.deal(fakeUser, 1 ether);
-
-        string memory title = "Test Campaign";
-        string memory description = "This is a test campaign.";
-        uint goal = 1 ether;
-        uint deadline = 1 minutes;
-
-        vm.prank(fakeUser);
-        uint campaignId = crowdfund.createCampaign(
-            title,
-            description,
-            goal,
-            deadline
-        );
-        
+        uint campaignId = newCampaign();
+        uint[] memory userCampaigns = crowdfund.getUserCampaigns(fakeUser);
 
         assertEq(campaignId, 0);
         assertEq(crowdfund.getTotalCampaigns(), 1);
         assertEq(crowdfund.getTotalFunding(), 0);
-        // assertEq(crowdfund.getUserCampaigns(fakeUser).length, 1);
-        // console.log(crowdfund.getUserCampaigns(fakeUser));
+        assertEq(userCampaigns.length, 1);
+    }
+
+    function test_CanDonateToCampaign() public {
+        uint campaignId = newCampaign();
+        uint amount = 10 ether;
+        uint amountToDonate = 1 ether;
+
+        address fakeDonor1 = vm.addr(2);
+        address fakeDonor2 = vm.addr(3);
+
+        vm.deal(fakeDonor1, amount);
+        vm.deal(fakeDonor2, amount);
+
+        vm.prank(fakeDonor1);
+        crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
+
+        vm.prank(fakeDonor2);
+        crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
+
+        assertEq(crowdfund.getTotalFunding(), amountToDonate * 2);
+        assertEq(
+            crowdfund.getCampaignAmountRaised(campaignId),
+            amountToDonate * 2
+        );
+    }
+
+    function test_CannotDonateZero() public {
+        uint amount = 10 ether;
+        address fakeDonor = vm.addr(2);
+        vm.deal(fakeDonor, amount);
+        uint campaignId = newCampaign();
+
+        vm.expectRevert(Crowdfund.Crowdfund_CannotDonateZero.selector);
+        vm.prank(fakeDonor);
+        crowdfund.donateToCampaign{value: 0}(campaignId);
+    }
+
+    function test_CannotDonateToInvalidCampaign() public {
+        uint campaignId = 1;
+        address fakeDonor = vm.addr(2);
+        uint amount = 10 ether;
+        uint amountToDonate = 1 ether;
+
+        vm.deal(fakeDonor, amount);
+
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.Crowdfund_InvalidCampaign.selector, campaignId));
+        vm.prank(fakeDonor);
+        crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
     }
 }
