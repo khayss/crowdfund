@@ -87,8 +87,95 @@ contract CrowdfundTest is Test {
 
         vm.deal(fakeDonor, amount);
 
-        vm.expectRevert(abi.encodeWithSelector(Crowdfund.Crowdfund_InvalidCampaign.selector, campaignId));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Crowdfund.Crowdfund_InvalidCampaign.selector,
+                campaignId
+            )
+        );
         vm.prank(fakeDonor);
+        crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
+    }
+
+    function test_BenefactorCanWithdrawWhenCampaignEnd() public {
+        uint campaignId = newCampaign();
+        uint amount = 10 ether;
+        uint amountToDonate = 1 ether;
+
+        address fakeDonor1 = vm.addr(2);
+        address fakeDonor2 = vm.addr(3);
+
+        vm.deal(fakeDonor1, amount);
+        vm.deal(fakeDonor2, amount);
+
+        vm.prank(fakeDonor1);
+        crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
+
+        vm.prank(fakeDonor2);
+        crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
+
+        vm.warp(block.timestamp + 2 minutes);
+        vm.roll(block.number + 4);
+
+        uint userBalanceBefore = fakeUser.balance;
+
+        vm.prank(fakeUser);
+        crowdfund.endCampaign(campaignId);
+
+        assertEq(crowdfund.getTotalFunding(), 0);
+        assertEq(fakeUser.balance, userBalanceBefore + amountToDonate * 2);
+    }
+
+    function test_CannotEndCampaignBeforeDeadline() public {
+        uint campaignId = newCampaign();
+        uint amount = 10 ether;
+        uint amountToDonate = 1 ether;
+
+        address fakeDonor1 = vm.addr(2);
+        address fakeDonor2 = vm.addr(3);
+
+        vm.deal(fakeDonor1, amount);
+        vm.deal(fakeDonor2, amount);
+
+        vm.prank(fakeDonor1);
+        crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
+
+        vm.prank(fakeDonor2);
+        crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Crowdfund.Crowdfund_CampaignNotEnded.selector,
+                block.timestamp + 60
+            )
+        );
+        vm.prank(fakeUser);
+        crowdfund.endCampaign(campaignId);
+    }
+
+    function test_CannotDonateAfterCampaignEnd() public {
+        uint campaignId = newCampaign();
+        uint amount = 10 ether;
+        uint amountToDonate = 1 ether;
+
+        address fakeDonor1 = vm.addr(2);
+        address fakeDonor2 = vm.addr(3);
+
+        vm.deal(fakeDonor1, amount);
+        vm.deal(fakeDonor2, amount);
+
+        vm.prank(fakeDonor1);
+        crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
+
+        vm.warp(block.timestamp + 2 minutes);
+        vm.roll(block.number + 4);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Crowdfund.Crowdfund_CampaignInactive.selector
+            )
+        );
+        vm.prank(fakeDonor2);
         crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
     }
 }

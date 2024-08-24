@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import {Crowdfund} from "../src/Crowdfund.sol";
 import {Script, console} from "forge-std/Script.sol";
 
-contract CrowdfundDeploy is Script {
+contract DeployCrowdfund is Script {
     function run() external returns (Crowdfund) {
         vm.startBroadcast();
 
