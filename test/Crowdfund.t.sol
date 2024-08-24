@@ -13,19 +13,14 @@ contract CrowdfundTest is Test {
         crowdfund = new Crowdfund();
     }
 
-    function newCampaign() public returns (uint campaignId) {
+    function newCampaign() public returns (uint256 campaignId) {
         string memory title = "Test Campaign";
         string memory description = "This is a test campaign.";
-        uint goal = 1 ether;
-        uint deadline = 1 minutes;
+        uint256 goal = 1 ether;
+        uint256 deadline = 1 minutes;
 
         vm.prank(fakeUser);
-        campaignId = crowdfund.createCampaign(
-            title,
-            description,
-            goal,
-            deadline
-        );
+        campaignId = crowdfund.createCampaign(title, description, goal, deadline);
     }
 
     function test_IsInitializedCorrectly() public view {
@@ -35,8 +30,8 @@ contract CrowdfundTest is Test {
     }
 
     function test_CanCreateCampaign() public {
-        uint campaignId = newCampaign();
-        uint[] memory userCampaigns = crowdfund.getUserCampaigns(fakeUser);
+        uint256 campaignId = newCampaign();
+        uint256[] memory userCampaigns = crowdfund.getUserCampaigns(fakeUser);
 
         assertEq(campaignId, 0);
         assertEq(crowdfund.getTotalCampaigns(), 1);
@@ -45,9 +40,9 @@ contract CrowdfundTest is Test {
     }
 
     function test_CanDonateToCampaign() public {
-        uint campaignId = newCampaign();
-        uint amount = 10 ether;
-        uint amountToDonate = 1 ether;
+        uint256 campaignId = newCampaign();
+        uint256 amount = 10 ether;
+        uint256 amountToDonate = 1 ether;
 
         address fakeDonor1 = vm.addr(2);
         address fakeDonor2 = vm.addr(3);
@@ -62,17 +57,14 @@ contract CrowdfundTest is Test {
         crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
 
         assertEq(crowdfund.getTotalFunding(), amountToDonate * 2);
-        assertEq(
-            crowdfund.getCampaignAmountRaised(campaignId),
-            amountToDonate * 2
-        );
+        assertEq(crowdfund.getCampaignAmountRaised(campaignId), amountToDonate * 2);
     }
 
     function test_CannotDonateZero() public {
-        uint amount = 10 ether;
+        uint256 amount = 10 ether;
         address fakeDonor = vm.addr(2);
         vm.deal(fakeDonor, amount);
-        uint campaignId = newCampaign();
+        uint256 campaignId = newCampaign();
 
         vm.expectRevert(Crowdfund.Crowdfund_CannotDonateZero.selector);
         vm.prank(fakeDonor);
@@ -80,27 +72,22 @@ contract CrowdfundTest is Test {
     }
 
     function test_CannotDonateToInvalidCampaign() public {
-        uint campaignId = 1;
+        uint256 campaignId = 1;
         address fakeDonor = vm.addr(2);
-        uint amount = 10 ether;
-        uint amountToDonate = 1 ether;
+        uint256 amount = 10 ether;
+        uint256 amountToDonate = 1 ether;
 
         vm.deal(fakeDonor, amount);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Crowdfund.Crowdfund_InvalidCampaign.selector,
-                campaignId
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.Crowdfund_InvalidCampaign.selector, campaignId));
         vm.prank(fakeDonor);
         crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
     }
 
     function test_BenefactorCanWithdrawWhenCampaignEnd() public {
-        uint campaignId = newCampaign();
-        uint amount = 10 ether;
-        uint amountToDonate = 1 ether;
+        uint256 campaignId = newCampaign();
+        uint256 amount = 10 ether;
+        uint256 amountToDonate = 1 ether;
 
         address fakeDonor1 = vm.addr(2);
         address fakeDonor2 = vm.addr(3);
@@ -117,7 +104,7 @@ contract CrowdfundTest is Test {
         vm.warp(block.timestamp + 2 minutes);
         vm.roll(block.number + 4);
 
-        uint userBalanceBefore = fakeUser.balance;
+        uint256 userBalanceBefore = fakeUser.balance;
 
         vm.prank(fakeUser);
         crowdfund.endCampaign(campaignId);
@@ -127,9 +114,9 @@ contract CrowdfundTest is Test {
     }
 
     function test_CannotEndCampaignBeforeDeadline() public {
-        uint campaignId = newCampaign();
-        uint amount = 10 ether;
-        uint amountToDonate = 1 ether;
+        uint256 campaignId = newCampaign();
+        uint256 amount = 10 ether;
+        uint256 amountToDonate = 1 ether;
 
         address fakeDonor1 = vm.addr(2);
         address fakeDonor2 = vm.addr(3);
@@ -143,20 +130,15 @@ contract CrowdfundTest is Test {
         vm.prank(fakeDonor2);
         crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Crowdfund.Crowdfund_CampaignNotEnded.selector,
-                block.timestamp + 60
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.Crowdfund_CampaignNotEnded.selector, block.timestamp + 60));
         vm.prank(fakeUser);
         crowdfund.endCampaign(campaignId);
     }
 
     function test_CannotDonateAfterCampaignEnd() public {
-        uint campaignId = newCampaign();
-        uint amount = 10 ether;
-        uint amountToDonate = 1 ether;
+        uint256 campaignId = newCampaign();
+        uint256 amount = 10 ether;
+        uint256 amountToDonate = 1 ether;
 
         address fakeDonor1 = vm.addr(2);
         address fakeDonor2 = vm.addr(3);
@@ -170,11 +152,7 @@ contract CrowdfundTest is Test {
         vm.warp(block.timestamp + 2 minutes);
         vm.roll(block.number + 4);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Crowdfund.Crowdfund_CampaignInactive.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.Crowdfund_CampaignInactive.selector));
         vm.prank(fakeDonor2);
         crowdfund.donateToCampaign{value: amountToDonate}(campaignId);
     }
