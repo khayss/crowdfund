@@ -35,6 +35,8 @@ contract Crowdfund {
     error Crowdfund_CampaignNotEnded(uint256 deadline);
     error Crowdfund_NoFundsRaised();
     error Crowdfund_PayoutFailed();
+    error Crowdfund_GoalCannotBeZero();
+    error Crowdfund_DeadlineTooShort();
 
     // Modifiers
 
@@ -52,6 +54,8 @@ contract Crowdfund {
         public
         returns (uint256 campaignId)
     {
+        if (_goal == 0) revert Crowdfund_GoalCannotBeZero();
+        if (_deadline == 0) revert Crowdfund_DeadlineTooShort();
         Campaign memory newCampaign = Campaign({
             isInitialized: true,
             isPaidOut: false,
