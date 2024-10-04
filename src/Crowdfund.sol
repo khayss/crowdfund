@@ -20,13 +20,22 @@ contract Crowdfund {
     // State variables
     mapping(uint256 => Campaign) campaigns;
     mapping(address => uint256[]) userCampaigns;
+    uint256[] campaignsId;
     uint256 numCampaigns;
     uint256 totalFunding;
 
     // Events
     event CampaignCreated(address indexed creator, uint256 indexed campaignId);
-    event CampaignEnded(address indexed creator, uint256 indexed campaignId, uint256 indexed amountRaised);
-    event DonationReceived(uint256 indexed campaignId, address indexed donator, uint256 indexed amount);
+    event CampaignEnded(
+        address indexed creator,
+        uint256 indexed campaignId,
+        uint256 indexed amountRaised
+    );
+    event DonationReceived(
+        uint256 indexed campaignId,
+        address indexed donator,
+        uint256 indexed amount
+    );
 
     // Errors
     error Crowdfund_InvalidCampaign(uint256 id);
@@ -50,10 +59,12 @@ contract Crowdfund {
     /// @param _goal The funding goal of the campaign.
     /// @param _deadline The deadline for the campaign.
     /// @return campaignId The ID of the created campaign.
-    function createCampaign(string calldata _title, string calldata _description, uint256 _goal, uint256 _deadline)
-        public
-        returns (uint256 campaignId)
-    {
+    function createCampaign(
+        string calldata _title,
+        string calldata _description,
+        uint256 _goal,
+        uint256 _deadline
+    ) public returns (uint256 campaignId) {
         if (_goal == 0) revert Crowdfund_GoalCannotBeZero();
         if (_deadline == 0) revert Crowdfund_DeadlineTooShort();
         Campaign memory newCampaign = Campaign({
@@ -73,6 +84,7 @@ contract Crowdfund {
         numCampaigns += 1;
 
         campaigns[campaignId] = newCampaign;
+        campaignsId.push(campaignId);
         _userCampaigns.push(campaignId);
 
         emit CampaignCreated(msg.sender, campaignId);
@@ -111,11 +123,17 @@ contract Crowdfund {
         campaign.isPaidOut = true;
         totalFunding -= campaign.amountRaised;
 
-        (bool success,) = payable(campaign.benefactor).call{value: campaign.amountRaised}("");
+        (bool success, ) = payable(campaign.benefactor).call{
+            value: campaign.amountRaised
+        }("");
 
         if (!success) revert Crowdfund_PayoutFailed();
 
-        emit CampaignEnded(campaign.benefactor, campaignId, campaign.amountRaised);
+        emit CampaignEnded(
+            campaign.benefactor,
+            campaignId,
+            campaign.amountRaised
+        );
     }
 
     /// @notice Gets the total number of campaigns.
@@ -133,21 +151,31 @@ contract Crowdfund {
     /// @notice Gets the campaigns created by a specific user.
     /// @param user The address of the user.
     /// @return The array of campaign IDs created by the user.
-    function getUserCampaigns(address user) external view returns (uint256[] memory) {
+    function getUserCampaigns(
+        address user
+    ) external view returns (uint256[] memory) {
         return userCampaigns[user];
     }
 
     /// @notice Gets the campaign details by ID.
     /// @param campaignId The ID of the campaign.
     /// @return The campaign details.
-    function getCampaignById(uint256 campaignId) external view returns (Campaign memory) {
+    function getCampaignById(
+        uint256 campaignId
+    ) external view returns (Campaign memory) {
         return campaigns[campaignId];
     }
 
     /// @notice Gets the amount raised for a specific campaign.
     /// @param campaignId The ID of the campaign.
     /// @return The amount raised for the campaign.
-    function getCampaignAmountRaised(uint256 campaignId) external view returns (uint256) {
+    function getCampaignAmountRaised(
+        uint256 campaignId
+    ) external view returns (uint256) {
         return campaigns[campaignId].amountRaised;
+    }
+
+    function getCampaignIds() external view returns (uint256[] memory) {
+        return campaignsId;
     }
 }
